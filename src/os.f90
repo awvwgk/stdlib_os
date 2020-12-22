@@ -40,7 +40,7 @@ module os
     unlink
 
 
-  include "os.name"
+ include "os.fh"
 
   contains
 

@@ -1,0 +1,222 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  gcc-build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    env:
+      FC: gfortran
+      GCC_V: 9
+      OMP_NUM_THREADS: 2,1
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+
+    - name: Install GCC (OSX)
+      if: contains(matrix.os, 'macos')
+      run: |
+          ln -s /usr/local/bin/gfortran-${GCC_V} /usr/local/bin/gfortran
+          which gfortran-${GCC_V}
+          which gfortran
+
+    - name: Install GCC (Linux)
+      if: contains(matrix.os, 'ubuntu')
+      run: |
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_V} 100 \
+        --slave /usr/bin/gfortran gfortran /usr/bin/gfortran-${GCC_V} \
+        --slave /usr/bin/gcov gcov /usr/bin/gcov-${GCC_V}
+
+    - name: Install meson/cmake
+      run: pip3 install meson cmake ninja
+
+    - name: Configure meson build
+      run: meson setup build
+
+    - name: Build library (meson)
+      run: meson compile -C build
+
+    - name: Run unit tests (meson)
+      run: meson test -C build --print-errorlogs --no-rebuild
+
+    - name: Configure cmake build
+      run: cmake -B _build -G Ninja
+
+    - name: Build library (CMake)
+      run: cmake --build _build
+
+    - name: Run unit tests (CTest)
+      run: ctest --output-on-failure --parallel
+      working-directory: _build
+
+  intel-build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04]
+
+    env:
+      FC: ifort
+      CC: icc
+      OMP_NUM_THREADS: 2,1
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+
+    - name: Add Intel repository
+      run: |
+        wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+        echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+        sudo apt-get update
+
+    - name: Install Intel oneAPI compiler
+      run: |
+        sudo apt-get install intel-oneapi-compiler-fortran intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+        source /opt/intel/oneapi/setvars.sh
+        printenv >> $GITHUB_ENV
+
+    - name: Install meson/cmake
+      run: pip3 install meson cmake ninja
+
+    - name: Configure meson build
+      run: meson setup build
+
+    - name: Build library (meson)
+      run: meson compile -C build
+
+    - name: Run unit tests (meson)
+      run: meson test -C build --print-errorlogs --no-rebuild
+
+    - name: Configure cmake build
+      run: cmake -B _build -G Ninja
+
+    - name: Build library (CMake)
+      run: cmake --build _build
+
+    - name: Run unit tests (CTest)
+      run: ctest --output-on-failure --parallel
+      working-directory: _build
+
+  msys2-build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: [
+          { msystem: MSYS,    arch: x86_64 },
+          { msystem: MINGW64, arch: x86_64 },
+          { msystem: MINGW32, arch: i686   }
+        ]
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup MinGW native environment
+      uses: msys2/setup-msys2@v2
+      if: contains(matrix.msystem, 'MINGW')
+      with:
+        msystem: ${{ matrix.msystem }}
+        update: false
+        install: >-
+          git
+          mingw-w64-${{ matrix.arch }}-gcc
+          mingw-w64-${{ matrix.arch }}-gcc-fortran
+          mingw-w64-${{ matrix.arch }}-meson
+          mingw-w64-${{ matrix.arch }}-cmake
+          mingw-w64-${{ matrix.arch }}-ninja
+
+    - name: Setup msys POSIX environment
+      uses: msys2/setup-msys2@v2
+      if: contains(matrix.msystem, 'MSYS')
+      with:
+        msystem: MSYS
+        update: false
+        install: >-
+          git
+          gcc
+          gcc-fortran
+          meson
+          cmake
+          ninja
+
+    - name: Configure meson build
+      run: meson setup build
+      env:
+        FC: gfortran
+        CC: gcc
+
+    - name: Build library (meson)
+      run: meson compile -C build
+
+    - name: Run unit tests (meson)
+      run: meson test -C build --print-errorlogs --no-rebuild
+
+    - name: Configure CMake build
+      run: cmake -G Ninja -B _build
+      env:
+        FC: gfortran
+        CC: gcc
+
+    - name: CMake library (CMake)
+      run: cmake --build _build --parallel
+
+    - name: CTest
+      run: ctest --output-on-failure --parallel
+      working-directory: _build
+
+  cygwin-build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: C:/cygwin/bin/bash.exe {0}
+    steps:
+    - uses: actions/checkout@v2
+    - run: |
+       bitsadmin /transfer cygwinDownloadJob /download /priority normal https://cygwin.com/setup-x86_64.exe %CD%\\cygwin-setup.exe
+       cygwin-setup --quiet-mode --no-desktop --download --local-install --no-verify -s http://cygwin.mirrors.pair.com/ -l "%CD%" -R "C:/cygwin"
+       cygwin-setup -q -d -D -L -X -s http://cygwin.mirrors.pair.com/ -l "%CD%" -R "C:/cygwin" -P cmake,meson,ninja,gcc,gcc-fortran
+      shell: cmd
+
+    - name: Configure meson build
+      run: meson setup build
+      env:
+        FC: gfortran
+        CC: gcc
+
+    - name: Build library (meson)
+      run: meson compile -C build
+
+    - name: Run unit tests (meson)
+      run: meson test -C build --print-errorlogs --no-rebuild
+
+    - name: Configure CMake build
+      run: cmake -G Ninja -B _build
+      env:
+        FC: gfortran
+        CC: gcc
+
+    - name: CMake library (CMake)
+      run: cmake --build _build --parallel
+
+    - name: CTest
+      run: ctest --output-on-failure --parallel
+      working-directory: _build
