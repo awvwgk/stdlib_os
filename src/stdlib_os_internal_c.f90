@@ -1,4 +1,4 @@
-module internal_c
+module stdlib_os_internal_c
   implicit none
 
   public
@@ -24,4 +24,4 @@ module internal_c
 
   end interface
 
-end module internal_c
+end module stdlib_os_internal_c

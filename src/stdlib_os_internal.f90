@@ -1,8 +1,8 @@
-module internal
+module stdlib_os_internal
 
   use, intrinsic :: ISO_C_Binding
 
-  use internal_c
+  use stdlib_os_internal_c
 
   implicit none
 
@@ -88,4 +88,4 @@ module internal
   end function PATH_MAX
 
 
-end module internal
+end module stdlib_os_internal

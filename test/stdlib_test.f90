@@ -1,7 +1,7 @@
 program stdlib_test
 
-  use os
-  use os_path
+  use stdlib_os
+  use stdlib_os_path
 
   implicit none
   integer :: unit,stat

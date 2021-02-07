@@ -1,7 +1,8 @@
-module os
+module stdlib_os
 
-  use internal
-  use os_c
+  use stdlib_os_internal
+  use stdlib_os_c
+  use stdlib_os_type
 
   implicit none
   private
@@ -10,17 +11,6 @@ module os
     pathsep = ':', &
     curdir = '.'
 
-  enum, bind(c); enumerator :: &
-    OS_UNDEFINED, &
-    OS_LINUX, &
-    OS_DARWIN, &  ! Canonical name for MacOSX
-    OS_CYGWIN, &
-    OS_WINDOWS, &
-    OS_MINGW, &
-    OS_MSYS
-  end enum
-
- 
   public :: &
     OS_UNDEFINED, &
     OS_LINUX, &
@@ -28,7 +18,9 @@ module os
     OS_CYGWIN, &
     OS_WINDOWS, &
     OS_MINGW, &
-    OS_MSYS
+    OS_MSYS, &
+    OS_NAME, &
+    OS_ID
 
   public :: &
     chdir, &
@@ -40,9 +32,8 @@ module os
     unlink
 
 
-  include "os.name"
+contains
 
-  contains
 
   ! os.access
 
@@ -184,4 +175,4 @@ module os
 
   end subroutine unlink
 
-end module os
+end module stdlib_os

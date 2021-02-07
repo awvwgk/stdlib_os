@@ -1,9 +1,9 @@
-module os_path
+module stdlib_os_path
 
   use iso_fortran_env, only: int64
-  use internal
-  use os
-  use os_path_c
+  use stdlib_os_internal
+  use stdlib_os
+  use stdlib_os_path_c
 
   implicit none
   character(len=*), parameter, public  :: sep = '/'
@@ -820,4 +820,4 @@ contains
 #endif
 
 
-end module os_path
+end module stdlib_os_path

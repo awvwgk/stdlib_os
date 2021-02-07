@@ -1,4 +1,4 @@
-module os_c
+module stdlib_os_c
 
   implicit none
 
@@ -51,4 +51,4 @@ module os_c
 
   end interface
 
-end module os_c
+end module stdlib_os_c

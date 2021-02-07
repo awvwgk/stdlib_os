@@ -1,0 +1,9 @@
+add_executable(
+  "${PROJECT_NAME}_demo"
+  "os_name.f90"
+)
+target_link_libraries(
+  "${PROJECT_NAME}_demo"
+  PRIVATE
+  "${PROJECT_NAME}_lib"
+)

@@ -1,4 +1,4 @@
-module os_path_c
+module stdlib_os_path_c
 
   implicit none
 
@@ -62,4 +62,4 @@ module os_path_c
 
   end interface
 
-end module os_path_c
+end module stdlib_os_path_c

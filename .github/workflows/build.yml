@@ -21,12 +21,18 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Install fpm
+      uses: fortran-lang/setup-fpm@v3
+      with:
+        fpm-version: 'v0.1.3'
+
     - name: Install GCC (OSX)
       if: contains(matrix.os, 'macos')
       run: |
         brew install gcc@${{ matrix.gcc_v }} || brew upgrade gcc@${{ matrix.gcc_v }} || true
         brew link gcc@${{ matrix.gcc_v }}
         ln -s /usr/local/bin/gfortran-${{ matrix.gcc_v }} /usr/local/bin/gfortran
+        ln -s /usr/local/bin/gcc-${{ matrix.gcc_v }} /usr/local/bin/gcc
 
     - name: Install GCC (Linux)
       if: contains(matrix.os, 'ubuntu')
@@ -38,8 +44,20 @@ jobs:
         --slave /usr/bin/gfortran gfortran /usr/bin/gfortran-${{ matrix.gcc_v }} \
         --slave /usr/bin/gcov gcov /usr/bin/gcov-${{ matrix.gcc_v }}
 
+    - name: Build
+      run: fpm build
+
+    - name: Run examples
+      run: fpm run --example
+
+    - name: Run tests
+      run: fpm test
+
     - name: Install CMake
       run: pip3 install ninja cmake
+
+    - name: Show predefined macros
+      run: echo | gfortran -dM -E -
 
     - name: Configure build
       run: cmake -B ${{ env.BUILD_DIR }} -G Ninja
@@ -49,6 +67,9 @@ jobs:
 
     - name: Build project
       run: cmake --build ${{ env.BUILD_DIR }}
+
+    - name: Run example
+      run: ./${{ env.BUILD_DIR }}/example/stdlib_os_demo
 
     - name: Run unit tests
       run: ctest --parallel --output-on-failure
@@ -75,6 +96,11 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Install fpm
+      uses: fortran-lang/setup-fpm@v3
+      with:
+        fpm-version: 'v0.1.3'
+
     - name: Add Intel repository
       run: |
         wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
@@ -89,6 +115,15 @@ jobs:
         source /opt/intel/oneapi/setvars.sh
         printenv >> $GITHUB_ENV
 
+    - name: Build
+      run: fpm build --compiler ifort
+
+    - name: Run examples
+      run: fpm run --example --compiler ifort
+
+    - name: Run tests
+      run: fpm test --compiler ifort
+
     - name: Install CMake
       run: pip3 install ninja cmake
 
@@ -100,6 +135,9 @@ jobs:
 
     - name: Build project
       run: cmake --build ${{ env.BUILD_DIR }}
+
+    - name: Run example
+      run: ./${{ env.BUILD_DIR }}/example/stdlib_os_demo
 
     - name: Run unit tests
       run: ctest --parallel --output-on-failure
@@ -150,6 +188,9 @@ jobs:
           cmake
           ninja
 
+    - name: Show predefined macros
+      run: echo | gfortran -dM -E -
+
     - name: Configure build
       run: cmake -B ${{ env.BUILD_DIR }} -G Ninja
       env:
@@ -158,6 +199,9 @@ jobs:
 
     - name: Build project
       run: cmake --build ${{ env.BUILD_DIR }}
+
+    - name: Run example
+      run: ./${{ env.BUILD_DIR }}/example/stdlib_os_demo.exe
 
     - name: Run unit tests
       run: ctest --parallel --output-on-failure
