@@ -1,4 +1,15 @@
-file(GLOB sources *.f90 *.F90 *.c)
+set(
+  sources
+  "internal.c"
+  "internal.f90"
+  "internal_c.f90"
+  "os.c"
+  "os.f90"
+  "os_c.f90"
+  "os_path.c"
+  "os_path.f90"
+  "os_path_c.f90"
+)
 
 add_library(
   "${PROJECT_NAME}_lib"
